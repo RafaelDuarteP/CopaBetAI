@@ -73,9 +73,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             Sign In
           </button>
           
-          <div className="text-center text-xs text-slate-500 mt-4">
-            Default Admin: <strong>admin</strong> / <strong>admin</strong>
-          </div>
         </form>
       </div>
     </div>

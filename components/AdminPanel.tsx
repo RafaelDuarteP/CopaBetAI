@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Match, isKnockoutStage } from '../types';
 import { saveMatch, deleteMatch } from '../services/storageService';
 import { generateMatchDescription } from '../services/geminiService';
+import ConfirmModal from './ConfirmModal';
 import { Plus, Trash2, Wand2, Calendar, Loader2, Save, Trophy, Pencil, X } from 'lucide-react';
 
 interface AdminPanelProps {
@@ -25,6 +26,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ matches, onUpdate }) => {
   const [editHomeScore, setEditHomeScore] = useState('');
   const [editAwayScore, setEditAwayScore] = useState('');
   const [editPenaltyWinner, setEditPenaltyWinner] = useState<string>('');
+
+  // Delete Modal State
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean, matchId: string | null }>({
+    isOpen: false,
+    matchId: null
+  });
 
   const resetForm = () => {
     setHomeTeam('');
@@ -99,15 +106,20 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ matches, onUpdate }) => {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this match?')) {
-      await deleteMatch(id);
+  const handleDeleteClick = (id: string) => {
+    setDeleteModal({ isOpen: true, matchId: id });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (deleteModal.matchId) {
+      await deleteMatch(deleteModal.matchId);
       // If we deleted the match currently being edited, reset form
-      if (editingMatchId === id) {
+      if (editingMatchId === deleteModal.matchId) {
         resetForm();
       }
       onUpdate();
     }
+    setDeleteModal({ isOpen: false, matchId: null });
   };
 
   const startEditingScore = (match: Match) => {
@@ -146,6 +158,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ matches, onUpdate }) => {
 
   return (
     <div className="space-y-8">
+      <ConfirmModal 
+        isOpen={deleteModal.isOpen}
+        title="Excluir Partida"
+        message="Tem certeza que deseja excluir esta partida? Todos os palpites associados a ela serão perdidos. Esta ação não pode ser desfeita."
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteModal({ isOpen: false, matchId: null })}
+      />
+
       {/* Create/Edit Match Form */}
       <div className={`p-6 rounded-xl border shadow-xl transition-colors ${editingMatchId ? 'bg-indigo-900/40 border-indigo-500/50' : 'bg-slate-800 border-slate-700'}`}>
         <div className="flex items-center justify-between mb-6">
@@ -250,7 +270,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ matches, onUpdate }) => {
               ) : (
                 <>
                   <Wand2 className="w-5 h-5" />
-                  Criar partida & Gerar Descrção
+                  Criar partida & Gerar Descrição
                 </>
               )}
             </button>
@@ -374,7 +394,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ matches, onUpdate }) => {
                             )}
 
                             <button
-                                onClick={() => handleDelete(match.id)}
+                                onClick={() => handleDeleteClick(match.id)}
                                 className="p-2 text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
                                 title="Delete Match"
                             >

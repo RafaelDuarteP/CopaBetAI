@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { User, UserRole } from '../types';
 import { registerUser, deleteUser, getUsers } from '../services/storageService';
+import ConfirmModal from './ConfirmModal';
 import { UserPlus, Trash2, Shield, User as UserIcon } from 'lucide-react';
 
 interface UserManagementProps {
@@ -15,6 +16,12 @@ const UserManagement: React.FC<UserManagementProps> = ({ onUpdate }) => {
   const [newRole, setNewRole] = useState<UserRole>(UserRole.USER);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // Delete Modal State
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean, userId: string | null }>({
+    isOpen: false,
+    userId: null
+  });
 
   const refreshUsers = () => {
     setUsers(getUsers());
@@ -52,16 +59,29 @@ const UserManagement: React.FC<UserManagementProps> = ({ onUpdate }) => {
     }
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to remove this user?')) {
-        deleteUser(id);
+  const handleDeleteClick = (id: string) => {
+    setDeleteModal({ isOpen: true, userId: id });
+  };
+
+  const handleConfirmDelete = () => {
+    if (deleteModal.userId) {
+        deleteUser(deleteModal.userId);
         refreshUsers();
         onUpdate();
     }
-  }
+    setDeleteModal({ isOpen: false, userId: null });
+  };
 
   return (
     <div className="space-y-8">
+      <ConfirmModal 
+        isOpen={deleteModal.isOpen}
+        title="Excluir Usuário"
+        message="Tem certeza que deseja excluir este usuário? Todos os palpites e pontos associados serão removidos permanentemente."
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteModal({ isOpen: false, userId: null })}
+      />
+
       {/* Create User Form */}
       <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl">
         <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
@@ -153,7 +173,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onUpdate }) => {
               {/* Prevent deleting yourself or the main admin if you want strict rules, but for now simple delete */}
               {u.username !== 'admin' && (
                   <button
-                    onClick={() => handleDelete(u.id)}
+                    onClick={() => handleDeleteClick(u.id)}
                     className="p-2 text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
                     title="Remove User"
                   >
