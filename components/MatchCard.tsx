@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Match, Bet, UserRole, isKnockoutStage } from '../types';
 import { saveBet, getUserBet, calculateBetPoints, getBets, getUsers } from '../services/storageService';
-import { getMatchPrediction } from '../services/geminiService';
 import { Calendar, Clock, Lock, Sparkles, Save, CheckCircle2, Users, AlertCircle } from 'lucide-react';
 
 interface MatchCardProps {
@@ -71,8 +70,6 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, currentUserRole, currentUs
   const [penaltyWinner, setPenaltyWinner] = useState<string | undefined>(undefined);
   
   const [isLocked, setIsLocked] = useState(false);
-  const [aiTip, setAiTip] = useState<string | null>(null);
-  const [loadingTip, setLoadingTip] = useState(false);
   const [saved, setSaved] = useState(false);
   const [pointsEarned, setPointsEarned] = useState<number | null>(null);
   const [pointsReasons, setPointsReasons] = useState<string[]>([]);
@@ -148,13 +145,6 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, currentUserRole, currentUs
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
     onRefresh();
-  };
-
-  const handleGetAiTip = async () => {
-    setLoadingTip(true);
-    const tip = await getMatchPrediction(match.homeTeam, match.awayTeam);
-    setAiTip(tip);
-    setLoadingTip(false);
   };
 
   const matchDate = new Date(match.date);
@@ -374,24 +364,6 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, currentUserRole, currentUs
               <Save className="w-4 h-4" />
               {saved ? 'Palpite salvo!' : 'Salvar Palpite'}
             </button>
-
-            {!aiTip ? (
-              <button
-                onClick={handleGetAiTip}
-                disabled={loadingTip}
-                className="w-full py-2 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700 text-sm font-medium transition-colors flex items-center justify-center gap-2"
-              >
-                <Sparkles className="w-4 h-4 text-purple-400" />
-                {loadingTip ? 'Consultando IA...' : 'Dicas de IA'}
-              </button>
-            ) : (
-              <div className="bg-slate-900/80 p-3 rounded-lg border border-purple-500/30">
-                <div className="flex items-center gap-2 mb-1 text-purple-400 text-xs font-bold uppercase tracking-wider">
-                  <Sparkles className="w-3 h-3" /> Palpite do Gemini
-                </div>
-                <p className="text-slate-300 text-sm leading-relaxed">{aiTip}</p>
-              </div>
-            )}
           </div>
         )}
         

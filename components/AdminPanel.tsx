@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Match, isKnockoutStage } from '../types';
 import { saveMatch, deleteMatch } from '../services/storageService';
-import { generateMatchDescription } from '../services/geminiService';
 import ConfirmModal from './ConfirmModal';
 import { Plus, Trash2, Wand2, Calendar, Loader2, Save, Trophy, Pencil, X } from 'lucide-react';
 
@@ -87,7 +86,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ matches, onUpdate }) => {
       setIsGenerating(true);
       
       // Auto-generate description using Gemini
-      const description = await generateMatchDescription(homeTeam, awayTeam, group);
+      const description = `Partida entre ${homeTeam} e ${awayTeam} pelo ${group}`;
 
       const newMatch: Match = {
         id: Date.now().toString(),

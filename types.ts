@@ -36,6 +36,6 @@ export interface User {
 }
 
 export const isKnockoutStage = (group: string): boolean => {
-  const stages = ['Round of 16', 'Quarter-Final', 'Semi-Final', 'Final'];
+  const stages = ['Oitavas de final', 'Quartas de final', 'Semi-Final', 'Final'];
   return stages.includes(group);
 };
