@@ -1,7 +1,6 @@
-
 export enum UserRole {
-  ADMIN = 'ADMIN',
-  USER = 'USER'
+  ADMIN = "ADMIN",
+  USER = "USER",
 }
 
 export interface Match {
@@ -14,7 +13,7 @@ export interface Match {
   homeScore?: number; // Final score (set by admin later)
   awayScore?: number; // Final score (set by admin later)
   penaltyWinner?: string; // Name of the team that won penalties (if draw in knockout)
-  status: 'SCHEDULED' | 'FINISHED';
+  status: "SCHEDULED" | "FINISHED";
 }
 
 export interface Bet {
@@ -36,6 +35,32 @@ export interface User {
 }
 
 export const isKnockoutStage = (group: string): boolean => {
-  const stages = ['Oitavas de final', 'Quartas de final', 'Semi-Final', 'Final'];
+  const stages = [
+    "Segunda Fase",
+    "Oitavas de final",
+    "Quartas de final",
+    "Semi-Final",
+    "Final",
+  ];
   return stages.includes(group);
 };
+
+export const groupFases = [
+  "Grupo A",
+  "Grupo B",
+  "Grupo C",
+  "Grupo D",
+  "Grupo E",
+  "Grupo F",
+  "Grupo G",
+  "Grupo H",
+  "Grupo I",
+  "Grupo J",
+  "Grupo K",
+  "Grupo L",
+  "Segunda Fase",
+  "Oitavas de final",
+  "Quartas de final",
+  "Semi-Final",
+  "Final",
+];

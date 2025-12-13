@@ -31,7 +31,7 @@ const countryMap: { [key: string]: string } = {
   'Italy': 'it', 'Itália': 'it',
   'Croatia': 'hr', 'Croácia': 'hr',
   'Uruguay': 'uy', 'Uruguai': 'uy',
-  'USA': 'us', 'United States': 'us', 'EUA': 'us',
+  'USA': 'us', 'United States': 'us', 'EUA': 'us', 'Estados Unidos': 'us',
   'Mexico': 'mx', 'México': 'mx',
   'Canada': 'ca', 'Canadá': 'ca',
   'Japan': 'jp', 'Japão': 'jp',
@@ -311,9 +311,9 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, currentUserRole, currentUs
         {/* User's Prediction (if finished and showing final score) */}
         {match.status === 'FINISHED' && currentUserRole === UserRole.USER && (
             <div className="bg-slate-900/50 rounded-lg p-3 text-center mb-4 border border-slate-700">
-                 <div className="text-xs text-slate-400 mb-1">Your Prediction</div>
+                 <div className="text-xs text-slate-400 mb-1">Seu palpite</div>
                  <div className="font-mono text-lg font-bold text-slate-300">
-                     {homeScore !== '' ? `${homeScore} - ${awayScore}` : 'No Bet'}
+                     {homeScore !== '' ? `${homeScore} - ${awayScore}` : 'Sem palpite'}
                  </div>
                  {penaltyWinner && (
                      <div className="text-xs text-indigo-400 mt-1">
@@ -371,7 +371,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, currentUserRole, currentUs
         {currentUserRole === UserRole.ADMIN && (
             <div className="mt-6 border-t border-slate-700 pt-4">
                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                    <Users className="w-3 h-3" /> User Predictions
+                    <Users className="w-3 h-3" /> Palpites
                 </h4>
                 {adminUserBets.length > 0 ? (
                     <div className="grid grid-cols-2 gap-2">

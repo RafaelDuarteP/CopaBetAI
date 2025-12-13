@@ -27,7 +27,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onUpdate }) => {
     setUsers(getUsers());
   };
 
-  const handleAddUser = (e: React.FormEvent) => {
+  const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess('');
@@ -39,7 +39,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onUpdate }) => {
 
     try {
       const newUser: User = {
-        id: Date.now().toString(),
+        id: undefined,
         name: newName,
         username: newUsername,
         password: newPassword,
@@ -47,7 +47,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ onUpdate }) => {
         points: 0
       };
 
-      registerUser(newUser);
+      await registerUser(newUser);
       setNewName('');
       setNewUsername('');
       setNewPassword('');

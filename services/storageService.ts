@@ -1,7 +1,26 @@
-import { Match, Bet, User, UserRole, isKnockoutStage } from '../types';
+import { Match, Bet, User, UserRole, isKnockoutStage } from '../types';import {
+  collection,
+  doc,
+  getDocs,
+  setDoc,
+  deleteDoc,
+} from "firebase/firestore";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  updatePassword,
+} from "firebase/auth";
+import { auth, db } from '../firebase';
+
 
 const STORAGE_KEY = 'copabet_data';
 const SESSION_KEY = 'copabet_session_user_id';
+
+
+const usersCol = collection(db, "users");
+const matchesCol = collection(db, "matches");
+const betsCol = collection(db, "bets");
 
 // Estado em memória
 let state = {
@@ -11,39 +30,63 @@ let state = {
 };
 
 // Helper para salvar no localStorage
-const saveToStorage = (): void => {
+
+const cleanObject = (obj: any): any => {
+  if (obj === null || obj === undefined) return obj;
+  if (Array.isArray(obj)) return obj.map(cleanObject);
+  if (typeof obj !== 'object') return obj;
+
+  return Object.fromEntries(
+    Object.entries(obj)
+      .filter(([, v]) => v !== undefined) // remove undefined
+      .filter(([k]) => k !== 'id')
+      .map(([k, v]) => [k, cleanObject(v)])
+  );
+};
+
+const saveToStorage = async (): Promise<void> => {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    const { matches, bets, users } = state;
+
+    await Promise.all([
+      Promise.all(users.map(user =>
+        setDoc(doc(usersCol, user.id!), cleanObject(user))
+      )),
+      Promise.all(matches.map(match =>
+        setDoc(doc(matchesCol, match.id), cleanObject(match))
+      )),
+      Promise.all(bets.map(bet =>
+        setDoc(doc(betsCol, `${bet.userId}_${bet.matchId}`), cleanObject(bet))
+      ))
+    ]);
+    await reloadStorage();
   } catch (e) {
-    console.error('Erro ao salvar no localStorage', e);
+    console.error('Error saving to storage:', e);
   }
 };
+
 
 // --- Inicialização ---
 
-export const initStorage = async (): Promise<void> => {
-  // Mantemos a assinatura async para compatibilidade com o App.tsx, 
-  // embora o localStorage seja síncrono.
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      state = JSON.parse(stored);
-    } else {
-      // Inicializa com dados padrão se estiver vazio
-      state.users = [{
-        id: 'admin_001',
-        name: 'Administrator',
-        username: 'admin',
-        password: 'admin',
-        role: UserRole.ADMIN,
-        points: 0
-      }];
-      saveToStorage();
-    }
-  } catch (error) {
-    console.error('Erro ao inicializar storage', error);
-  }
+const initStorage = async (): Promise<void> => {
+  const usersSnap = await getDocs(usersCol);
+  const matchesSnap = await getDocs(matchesCol);
+  const betsSnap = await getDocs(betsCol);
+
+  console.log('Fetched data from Firestore', {
+    users: usersSnap.docs.map(d => d.data()),
+    matches: matchesSnap.docs.map(d => d.data()),
+    bets: betsSnap.docs.map(d => d.data())
+  });
+
+  state.users = usersSnap.docs.map(d => ({ ...d.data(), id: d.id }) as User);
+  state.matches = matchesSnap.docs.map(d => ({ ...d.data(), id: d.id }) as Match);
+  state.bets = betsSnap.docs.map(d => d.data() as Bet);
 };
+
+const reloadStorage = async (): Promise<void> => {
+  await initStorage();
+}
 
 // --- Matches ---
 
@@ -61,16 +104,21 @@ export const saveMatch = async (match: Match): Promise<void> => {
   }
   
   if (match.status === 'FINISHED') {
-    recalculateStandingsInternal();
+    await recalculateStandingsInternal();
   }
 
-  saveToStorage();
+  await saveToStorage();
 };
 
 export const deleteMatch = async (id: string): Promise<void> => {
   state.matches = state.matches.filter(m => m.id !== id);
-  recalculateStandingsInternal();
-  saveToStorage();
+  const betsToDelete = state.bets.filter(b => b.matchId === id);
+  state.bets = state.bets.filter(b => b.matchId !== id);
+  await Promise.all(betsToDelete.map(bet => 
+    deleteDoc(doc(betsCol, `${bet.userId}_${bet.matchId}`))
+  ));
+  await deleteDoc(doc(matchesCol, id));
+  await recalculateStandingsInternal();
 };
 
 // --- Bets ---
@@ -82,7 +130,7 @@ export const getBets = (): Bet[] => {
 export const saveBet = async (bet: Bet): Promise<void> => {
   state.bets = state.bets.filter(b => !(b.matchId === bet.matchId && b.userId === bet.userId));
   state.bets.push(bet);
-  saveToStorage();
+  await saveToStorage();
 };
 
 export const getUserBet = (matchId: string, userId: string): Bet | undefined => {
@@ -99,9 +147,20 @@ export const registerUser = async (newUser: User): Promise<void> => {
   if (state.users.some(u => u.username === newUser.username)) {
     throw new Error('Nome de usuário já existe');
   }
-  state.users.push(newUser);
-  saveToStorage();
+
+  const cred = await createUserWithEmailAndPassword(
+    auth,
+    newUser.username + '@email.com',
+    newUser.password
+  );
+
+  const { password, ...sanitized } = newUser;
+  sanitized.id = cred.user.uid;
+
+  state.users.push(sanitized as User);
+  await saveToStorage();
 };
+
 
 export const updateUser = async (updatedUser: User): Promise<void> => {
   const index = state.users.findIndex(u => u.id === updatedUser.id);
@@ -109,23 +168,43 @@ export const updateUser = async (updatedUser: User): Promise<void> => {
     throw new Error('Usuário não encontrado');
   }
   state.users[index] = updatedUser;
-  saveToStorage();
+
+  if (updatedUser.password) {
+    await updatePassword(auth.currentUser!, updatedUser.password);
+  }
+  await saveToStorage();
 };
 
 export const deleteUser = async (userId: string): Promise<void> => {
     state.users = state.users.filter(u => u.id !== userId);
-    saveToStorage();
+    const betsToDelete = state.bets.filter(b => b.userId === userId);
+    state.bets = state.bets.filter(b => b.userId !== userId);
+    console.log('Deleting bets for user:', betsToDelete);
+    await Promise.all(betsToDelete.map(bet => 
+      deleteDoc(doc(betsCol, `${bet.userId}_${bet.matchId}`))
+    ));
+    await deleteDoc(doc(usersCol, userId));
+    await saveToStorage();
 }
 
-export const authenticateUser = (username: string, password: string): User | null => {
-  const user = state.users.find(u => u.username === username && u.password === password);
-  return user || null;
+export const authenticateUser = async (username: string, password: string): Promise<User | null> => {
+ try { const userCredentials = await signInWithEmailAndPassword(auth, username+'@email.com', password);
+  console.log('Authenticated user:', userCredentials);
+  await initStorage();
+  const user = state.users.find(u => u.id === userCredentials.user.uid) || null;
+  console.log('Loaded user', user);
+  return user || null;}
+  catch (error) {
+    console.error('Authentication error:', error);
+    return null;
+  }
 };
 
 // Sessão
-export const getSession = (): User | null => {
+export const getSession =  async (): Promise<User | null> => {
   const userId = localStorage.getItem(SESSION_KEY);
   if (!userId) return null;
+  await  initStorage(); // Garantir que o estado está carregado
   return state.users.find(u => u.id === userId) || null;
 };
 
@@ -133,7 +212,8 @@ export const setSession = (user: User): void => {
   localStorage.setItem(SESSION_KEY, user.id);
 };
 
-export const clearSession = (): void => {
+export const clearSession = async (): Promise<void> => {
+  await signOut(auth);
   localStorage.removeItem(SESSION_KEY);
 };
 
@@ -224,7 +304,7 @@ export const calculateBetPoints = (bet: Bet, match: Match): ScoreResult => {
   return { points, reasons };
 };
 
-const recalculateStandingsInternal = (): void => {
+const recalculateStandingsInternal = async (): Promise<void> => {
   const finishedMatches = state.matches.filter(m => m.status === 'FINISHED');
   
   state.users = state.users.map(user => {
@@ -241,9 +321,9 @@ const recalculateStandingsInternal = (): void => {
 
     return { ...user, points: totalPoints };
   });
+  await saveToStorage();
 };
 
 export const recalculateStandings = async (): Promise<void> => {
-  recalculateStandingsInternal();
-  saveToStorage();
+  await recalculateStandingsInternal();
 };

@@ -12,11 +12,11 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     
-    const user = authenticateUser(username, password);
+    const user = await authenticateUser(username, password);
     if (user) {
       setSession(user);
       onLogin(user);
@@ -32,7 +32,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           <div className="bg-emerald-500 w-16 h-16 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-900/50">
             <Trophy className="w-8 h-8 text-slate-900" />
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">CopaBet AI</h1>
+          <h1 className="text-3xl font-bold text-white mb-2">CopaBet</h1>
           <p className="text-slate-400">Sign in to start predicting</p>
         </div>
 

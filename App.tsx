@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, UserRole, Match } from './types';
-import { getSession, clearSession, getMatches, getUsers, initStorage } from './services/storageService';
+import { getSession, clearSession, getMatches, getUsers } from './services/storageService';
 import MatchCard from './components/MatchCard';
 import AdminPanel from './components/AdminPanel';
 import UserManagement from './components/UserManagement';
@@ -19,10 +19,8 @@ const App: React.FC = () => {
 
   // Inicializa storage ao abrir o app
   useEffect(() => {
-    const initialize = async () => {
-      await initStorage();
-      
-      const sessionUser = getSession();
+    const initialize = async () => {      
+      const sessionUser = await getSession();
       if (sessionUser) {
           const currentUsers = getUsers();
           const updatedUser = currentUsers.find(u => u.id === sessionUser.id);
@@ -85,7 +83,7 @@ const App: React.FC = () => {
                 <Trophy className="w-6 h-6 text-slate-900" />
               </div>
               <span className="text-2xl font-bold bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent hidden sm:block">
-                CopaBet AI
+                CopaBet
               </span>
             </div>
 
@@ -174,9 +172,9 @@ const App: React.FC = () => {
         {view === 'MATCHES' && user.role === UserRole.ADMIN ? (
           <AdminPanel matches={matches} onUpdate={refreshData} />
         ) : view === 'USERS' && user.role === UserRole.ADMIN ? (
-          <UserManagement onUpdate={() => {}} />
+          <UserManagement onUpdate={refreshData} />
         ) : view === 'AUDIT' && user.role === UserRole.ADMIN ? (
-          <UserAudit />
+          <UserAudit onUpdate={refreshData} />
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
              {/* Left Column: Matches */}
@@ -273,7 +271,7 @@ const App: React.FC = () => {
 
       {/* Footer */}
       <footer className="mt-auto py-8 text-center text-slate-600 text-sm">
-        <p>&copy; 2025 CopaBet AI. Vibe coding in partnership between Rafael and Gemini.</p>
+        <p>&copy; 2025 CopaBet. Powered by <a href="https://github.com/RafaelDuarteP" target="_blank" rel="noopener noreferrer">RafaelDuarteP</a>.</p>
       </footer>
     </div>
   );
